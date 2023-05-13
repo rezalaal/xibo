@@ -29,6 +29,9 @@ use Xibo\Service\DateServiceInterface;
 use Xibo\Service\LogServiceInterface;
 use Xibo\Service\SanitizerServiceInterface;
 
+use PHPMailer\PHPMailer\PHPMailer;
+use PHPMailer\PHPMailer\Exception;
+
 /**
  * Class Login
  * @package Xibo\Controller
@@ -206,4 +209,96 @@ class Login extends Base
 
         $response->setData(['version' => VERSION, 'sourceUrl' => $this->getConfig()->getThemeConfig('cms_source_url')]);
     }
+
+    public function forgotPasswordForm()    
+    {
+        
+        $response = $this->getState();
+
+        $response->template = 'forgot-password';
+
+        $this->getState()->setData(['version' => VERSION]);
+    }
+
+
+    public function forgotPassword()
+    {
+        // Get email
+        $email = $this->getSanitizer()->getString('email');
+        // Validate email 
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            $this->getApp()->flash('forgot_password_message', __('Enter your email address please.'));
+            $this->getApp()->redirect('forgot-password');
+        }
+
+        $user = $this->userFactory->getByEmail($email);
+        $code = $user->updateResetPasswordCode();
+        
+        try {
+            $this->mailResetPasswordCode($user, $code);
+        }catch(\Exception $e)
+        {
+            $e->getMessage();
+        }
+
+        $_SESSION['forgot-password-token'] = hash('sha256', $email);
+
+        $this->getApp()->flash('login_message', __('Check your email to change password'));
+        $this->getApp()->redirect('get-reset-code');
+    }
+
+    public function mailResetPasswordCode($email, $code)
+    {
+        // Create a new PHPMailer object
+        $mail = new PHPMailer(true);
+
+        $mail->From = $this->getConfig()->getSetting('mail_from');
+        $mail->Subject = 'Recovery password';
+        $mail->Body    = 'Your recovery password is: '. $code;
+        $mail->addAddress($user->email, $user->lastname);
+        try {                       
+            $mail->send();
+        } catch (Exception $e) {
+            echo 'Message could not be sent. Error: '. $e->getMessage();
+        }
+    }
+
+    public function getResetPasswordCodeForm()
+    {
+        $token = $_SESSION['forgot-password-token'];
+        $response = $this->getState();
+
+        $response->template = 'reset-password-code';
+
+        $this->getState()->setData([
+            'version' => VERSION,
+            'token' => $token
+        ]);
+    }
+
+    public function resetPassword()
+    {
+        $code = $this->getSanitizer()->getString('code');
+        $token = $this->getSanitizer()->getString('token');
+        $password = $this->getSanitizer()->getString('password');
+        $confirmPassword = $this->getSanitizer()->getString('confirm-password');
+        
+        if ($password != $confirmPassword) {
+            $this->getApp()->flash('reset_password_message', __('Passwords do not match'));
+            $this->getApp()->redirect('get-reset-code');            
+        }
+
+        $user = $this->userFactory->check($code, $token);
+
+        if(!$user) {
+            $this->getApp()->flash('reset_password_message', __('Invalid code or token'));
+            $this->getApp()->redirect('get-reset-code');
+        }
+        
+        $user->passwordRecovery($password, $user->UserID);
+
+        $this->getApp()->flash('login_message', __('Your password has been changed'));
+        $this->getApp()->redirect('login');
+    }
+
 }

@@ -1,0 +1,10 @@
+{
+  "dbVersion": 139,
+  "appVersion": "1.8.8",
+  "steps": [
+    {
+      "step": "Add widget created/modified dates",
+      "action": "ALTER TABLE `user` ADD `passwordRecoveryCode` VARCHAR(100) NULL DEFAULT NULL AFTER `ref5`;"
+    }
+  ]
+}

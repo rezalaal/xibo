@@ -54,6 +54,12 @@ $app->get('/logout', '\Xibo\Controller\Login:logout')->name('logout');
 // Ping pong route
 $app->get('/login/ping', '\Xibo\Controller\Login:PingPong')->name('ping');
 
+// Forgot Password
+$app->get('/forgot-password', '\Xibo\Controller\Login:forgotPasswordForm')->name('forgot-password');
+$app->post('/forgot-password', '\Xibo\Controller\Login:forgotPassword');
+$app->get('/get-reset-code', '\Xibo\Controller\Login:getResetPasswordCodeForm')->name('reset-password-code');
+$app->post('/reset-password', '\Xibo\Controller\Login:resetPassword')->name('reset-password');
+
 //
 // upgrade
 //

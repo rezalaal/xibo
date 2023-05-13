@@ -1289,4 +1289,36 @@ class User implements \JsonSerializable
             return !(stripos($element->option, 'Grid'));
         });
     }
+
+    public function updateResetPasswordCode()
+    {
+        $code = time();
+        $this->getStore()->update('UPDATE `user` SET passwordRecoveryCode = :passwordRecoveryCode WHERE userId = :userId', [
+            'userId' => $this->userId,
+            'passwordRecoveryCode' => $code
+        ]);
+
+        return $code;
+    }
+
+    public function getByResetPasswordCode($code, $token)
+    {
+        $user = $this->getStore()->select('SELECT * FROM `user` WHERE resetPasswordCode = :code ', [
+            'code' => $code
+        ]);
+
+        if (count($user) > 0 && hash('sha256', $user[0]['email']) == $token) {
+            return $user[0];            
+        }
+
+        return null;
+    }
+
+    public function passwordRecovery($password, $id)
+    {
+        $this->getStore()->update('UPDATE `user` SET password = :password WHERE userId = :userId', [
+            'userId' => $id,
+            'password' => $password
+        ]);
+    }
 }

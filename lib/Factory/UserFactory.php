@@ -402,4 +402,21 @@ class UserFactory extends BaseFactory
 
         return $entries;
     }
+
+    public function getByCode($code) {
+        $users = $this->query(null, array('passwordRecoveryCode' => $code));
+        
+        if (count($users) <= 0)
+            return null;
+        return $users[0];
+    }
+
+
+    public function check($code, $token)
+    {
+        $user = $this->getByCode($code);
+        $user->getByResetPasswordCode($code, $token);
+        return $user;
+    }
+        
 }
